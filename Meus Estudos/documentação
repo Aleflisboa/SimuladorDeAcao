@@ -1,0 +1,39 @@
+'''variavel como sabemos é aquilo que amazenamos dados.
+podemos criar variaveis para armazenar numeros, textos, booleanos, etc.
+exemplo:  Nome = João <-- isso é uma variavel do tipo string, ou seja, texto.
+Idade = 20 <-- isso é uma variavel do tipo int, ou seja, numero inteiro.
+Altura = 1.75 <-- isso é uma variavel do tipo float, ou seja, numero decimal.'''
+
+"""variavel #boolean armazena true e false, ou seja, verdadeiro ou falso.
+exemplo:  Sol = true <-- isso é uma variavel do tipo boolean, ou seja, verdadeiro.
+Chuva = false <-- isso é uma variavel do tipo boolean, ou seja, falso."""
+
+#input é uma função que permite ao usuário inserir dados.
+#print é uma função que permite exibir dados na tela.
+
+"""lista é uma estrutura de dados que armazena uma coleção de itens.
+exemplo:  lista_frutas = ["maçã", "banana", "laranja"] <-- isso é uma lista de frutas.
+o index é a posição de um item na lista, começando do 0.
+exemplo:  lista_frutas[0] <-- isso retorna "maçã", pois é o item na posição 0 da lista."""
+
+"""o append é um método que permite adicionar um item ao final da lista.
+exemplo:  lista_frutas.append("uva") <-- isso adiciona "uva" ao final da lista.
+
+insert é um método que permite adicionar um item em uma posição específica da lista.
+exemplo:  lista_frutas.insert(1, "abacaxi") <-- isso adiciona "abacaxi" na posição 1 da lista."""
+
+"""len,min e max são funções que permitem obter informações sobre a lista."""
+
+"""função é um bloco de código que realiza uma tarefa específica.
+exemplo:  def saudacao(): <-- isso é uma função chamada saudacao.
+exemplo2: def minha_funcao(valor1, valor2):  <-- isso é uma função chamada minha_funcao que recebe dois parâmetros, valor1 e valor2.
+    return valor1 + valor2  <-- isso retorna a soma dos dois valores.
+    reposta = minha_funcao(10,10)  <-- isso chama a função minha_funcao com os valores 10 e 10, e armazena o resultado na variável resposta.
+    print("resposta", resposta) <-- isso retorna 20, pois a função soma os dois valores."""
+
+"""dicionário é uma estrutura de dados que armazena pares de chave-valor.
+exemplo:  dicionario = {"nome": "João", "idade": 20, "altura": 1.75} <-- isso é um dicionário com as chaves "nome", "idade" e "altura", e os valores correspondentes."""
+
+""".isnumeric é uma função de validação que verifica se a variavel ou string é numerica ou não """
+
+""".isalph é uma função de validação que verifica se a variavel ou string é alfabetica ou não """
