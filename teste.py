@@ -1,5 +1,4 @@
 import yfinance as yf
-import pandas as pd
 import time
 from datetime import datetime
 from db import get_conexao
@@ -12,7 +11,7 @@ LIMITE_ABAIXO = -0.05
 
 
 class BotAnalista:
-    def __init__(self, nome, bot_id,):
+    def __init__(self, nome, bot_id):
         self.nome = nome
         self.bot_id = bot_id
         self.humor = "ESPERANDO"
@@ -21,7 +20,6 @@ class BotAnalista:
 
     def analisar_mercado(self, preco_atual):
         self.historico_precos.append(preco_atual)
-        
         if len(self.historico_precos) < 3:
             self.humor = "ESPERANDO"
             self.status_acao = "MEDIA"
@@ -39,7 +37,7 @@ class BotAnalista:
         else:
             self.status_acao = "MEDIA (Boa)"
             self.humor = "ESPERANDO"
-    
+
     def salvar_analise(self, preco):
         """Grava a análise atual no banco."""
         try:
@@ -57,39 +55,35 @@ class BotAnalista:
             print(f"⚠️ Erro ao salvar análise do {self.nome}: {e}")
 
     def mostrar_comportamento(self, agora):
-      acao_visual = "📈"  # exemplo
-
-      print(
-        f"[{self.nome:<15}] "
-        f"{agora.strftime('%H/%M/%S')} | "
-        f"Ação: {self.status_acao:<22} | "
-        f"Humor: {self.humor:<12} | "
-        f"{acao_visual}"
-    )
+        print(
+            f"[{self.nome:<15}] "
+            f"{agora.strftime('%H:%M:%S')} | "
+            f"Ação: {self.status_acao:<22} | "
+            f"Humor: {self.humor:<12} | 📈"
+        )
 
 
 def buscar_dados_yahoo(ticker, periodo, intervalo):
     print(f"📡 Buscando dados de {ticker} no Yahoo Finance...")
     acao = yf.Ticker(ticker)
     dados = acao.history(period=periodo, interval=intervalo)
-    
     if dados.empty:
-        print("❌ Nenhum dado encontrado. Verifique o ticker ou a conexão.")
+        print("❌ Nenhum dado encontrado.")
         return None
-    
-    print(f"✅ {len(dados)} dias de dados carregados com sucesso!\n")
+    print(f"✅ {len(dados)} candles carregados!\n")
     return dados
 
+
 def simular_mercado():
-    print("="*100)
-    print(f" SIMULADOR DE ANÁLISE DE MERCADO - {TICKER} (Dados Reais do Yahoo Finance) ")
-    print("="*100)
+    print("=" * 100)
+    print(f" SIMULADOR DE ANÁLISE DE MERCADO - {TICKER} ")
+    print("=" * 100)
 
     dados = buscar_dados_yahoo(TICKER, PERIODO, INTERVALO)
     if dados is None:
         return
 
-  # 🔹 Busca (ou cria) os 3 bots no banco
+    # 🔹 Busca (ou cria) os 3 bots no banco
     conn = get_conexao()
     cur = conn.cursor()
     nomes = ["Bot_Alfa", "Bot_Beta", "Bot_Gama"]
@@ -106,22 +100,18 @@ def simular_mercado():
     cur.close()
     conn.close()
 
-    # Itera sobre cada dia do histórico real
-    agora = datetime.now()
     for agora, linha in dados.iterrows():
-        preco = linha['Close']
-        
-        print(f"\n--- {agora.strftime('%H%M/%S')} | VALE3 Fechou em: R$ {preco:.2f} ---")
-        
+        preco = linha["Close"]
+        print(f"\n--- {agora.strftime('%H:%M:%S')} | VALE3: R$ {preco:.2f} ---")
         for bot in bots:
             bot.analisar_mercado(preco)
             bot.mostrar_comportamento(agora)
-            bot.salvar_analise(preco)
+            bot.salvar_analise(preco)   # 💾 grava no MySQL
+        time.sleep(0.5)
 
-        time.sleep(60)  # Pausa para leitura
-
-    print("\n" + "="*100)
-    print(" FIM DA SIMULAÇÃO ")
+    print("\n" + "=" * 100)
+    print(" FIM DA SIMULAÇÃO — dados gravados no MySQL ")
+    print("=" * 100)
 
 
 if __name__ == "__main__":
