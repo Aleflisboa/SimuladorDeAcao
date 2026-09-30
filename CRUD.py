@@ -1,12 +1,20 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from db import get_conexao
 
 app = FastAPI(title="API Bots Analistas")
+app.mount("/static", StaticFiles(directory="front"), name="static")
+
+@app.get("/")
+def pagina_inicial():
+    return FileResponse("front/index.html")
 
 
 class BotRequest(BaseModel):
     nome: str
+    acao: str
 
 
 # ---------- CREATE ----------
@@ -15,10 +23,17 @@ def criar_bot(dado: BotRequest):
     conn = get_conexao()
     cur = conn.cursor()
     try:
-        cur.execute("INSERT INTO bots (nome) VALUES (%s)", (dado.nome,))
+        cur.execute(
+    "INSERT INTO bots (nome, acao) VALUES (%s, %s)",
+    (dado.nome, dado.acao)
+)
         novo_id = cur.lastrowid
-        return {"mensagem": "Bot criado com sucesso",
-                "id": novo_id, "nome": dado.nome}
+        return {
+    "mensagem": "Bot criado com sucesso",
+    "id": novo_id,
+    "nome": dado.nome,
+    "acao": dado.acao
+}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     finally:
@@ -31,7 +46,9 @@ def criar_bot(dado: BotRequest):
 def listar_bots():
     conn = get_conexao()
     cur = conn.cursor(dictionary=True)
-    cur.execute("SELECT id, nome, humor, status_acao, criado_em FROM bots")
+    cur.execute(
+     "SELECT id, nome, acao, preco, humor, status_acao, criado_em FROM bots"
+)
     resultado = cur.fetchall()
     cur.close()
     conn.close()
@@ -40,16 +57,28 @@ def listar_bots():
 
 # ---------- READ (por id) ----------
 @app.get("/bots/{bot_id}")
+@app.get("/bots/{bot_id}")
 def buscar_bot(bot_id: int):
     conn = get_conexao()
     cur = conn.cursor(dictionary=True)
-    cur.execute("""SELECT id, nome, humor, status_acao, criado_em 
-                   FROM bots WHERE id = %s""", (bot_id,))
+
+    cur.execute("""
+        SELECT id, nome, acao, preco, humor, status_acao, criado_em
+        FROM bots
+        WHERE id = %s
+    """, (bot_id,))
+
     bot = cur.fetchone()
+
     cur.close()
     conn.close()
+
     if not bot:
-        raise HTTPException(status_code=404, detail="Bot não encontrado")
+        raise HTTPException(
+            status_code=404,
+            detail="Bot não encontrado"
+        )
+
     return bot
 
 
@@ -58,8 +87,10 @@ def buscar_bot(bot_id: int):
 def editar_bot(bot_id: int, dados: BotRequest):
     conn = get_conexao()
     cur = conn.cursor()
-    cur.execute("UPDATE bots SET nome = %s WHERE id = %s",
-                (dados.nome, bot_id))
+    cur.execute(
+    "UPDATE bots SET nome = %s, acao = %s WHERE id = %s",
+    (dados.nome, dados.acao, bot_id)
+)
     if cur.rowcount == 0:
         cur.close()
         conn.close()
