@@ -1,8 +1,15 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from db import get_conexao
 
 app = FastAPI(title="API Bots Analistas")
+app.mount("/static", StaticFiles(directory="front"), name="static")
+
+@app.get("/")
+def pagina_inicial():
+    return FileResponse("front/index.html")
 
 
 class BotRequest(BaseModel):
