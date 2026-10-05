@@ -1,173 +1,404 @@
 import yfinance as yf
-import pandas as pd
 import time
 from datetime import datetime
 from db import get_conexao
 
 
-PERIODO = "1d"
-INTERVALO = "5m"
+# ============================================================
+# CONFIGURAÇÕES
+# ============================================================
+
+INTERVALO_ATUALIZACAO = 60  # segundos
+
 LIMITE_ACIMA = 0.05
 LIMITE_ABAIXO = -0.05
 
 
+# ============================================================
+# CLASSE DO BOT
+# ============================================================
+
 class BotAnalista:
-    def __init__(self, nome, bot_id, acao):
+
+    def __init__(self, nome, bot_id, ativo):
         self.nome = nome
         self.bot_id = bot_id
-        self.acao = acao
+        self.ativo = ativo
+
         self.humor = "ESPERANDO"
-        self.status_acao = "MEDIA"
+        self.status_acao = "MEDIA (Boa)"
+
         self.historico_precos = []
-        
+
+    # --------------------------------------------------------
+    # ANALISAR MERCADO
+    # --------------------------------------------------------
+
     def analisar_mercado(self, preco_atual):
+
         self.historico_precos.append(preco_atual)
-        
+
+        # Mantém somente os últimos 3 preços
+        if len(self.historico_precos) > 3:
+            self.historico_precos.pop(0)
+
+        # Ainda não temos preços suficientes
         if len(self.historico_precos) < 3:
             self.humor = "ESPERANDO"
-            self.status_acao = "MEDIA"
+            self.status_acao = "MEDIA (Boa)"
             return
 
-        media = sum(self.historico_precos[-3:]) / 3
+        media = sum(self.historico_precos) / len(self.historico_precos)
+
+        if media == 0:
+            return
+
         variacao = (preco_atual - media) / media
 
+        # Subiu mais de 5%
         if variacao > LIMITE_ACIMA:
+
             self.status_acao = "ACIMA (Agradavel)"
             self.humor = "FELIZ"
+
+        # Caiu mais de 5%
         elif variacao < LIMITE_ABAIXO:
+
             self.status_acao = "BAIXO (Desagradavel)"
             self.humor = "COM_RAIVA"
+
+        # Normal
         else:
+
             self.status_acao = "MEDIA (Boa)"
             self.humor = "ESPERANDO"
-    
+
+    # --------------------------------------------------------
+    # SALVAR NO MYSQL
+    # --------------------------------------------------------
+
     def salvar_analise(self, preco):
-        
-     try:
+
+        conn = None
+        cur = None
+
+        try:
+
+            conn = get_conexao()
+            cur = conn.cursor()
+
+            # Atualiza o bot atual
+            cur.execute(
+                """
+                UPDATE bots
+                SET preco = %s,
+                    humor = %s,
+                    status_acao = %s
+                WHERE id = %s
+                """,
+                (
+                    float(preco),
+                    self.humor,
+                    self.status_acao,
+                    self.bot_id
+                )
+            )
+
+            # Salva histórico, caso a tabela exista
+            try:
+
+                cur.execute(
+                    """
+                    INSERT INTO historico_analises
+                    (bot_id, preco, humor, status_acao)
+                    VALUES (%s, %s, %s, %s)
+                    """,
+                    (
+                        self.bot_id,
+                        float(preco),
+                        self.humor,
+                        self.status_acao
+                    )
+                )
+
+            except Exception as erro_historico:
+
+                print(
+                    f"⚠️ Não foi possível salvar histórico "
+                    f"do {self.nome}: {erro_historico}"
+                )
+
+            conn.commit()
+
+            print(
+                f"💾 {self.nome} atualizado no MySQL | "
+                f"R$ {float(preco):.2f}"
+            )
+
+        except Exception as erro:
+
+            print(
+                f"❌ Erro ao salvar {self.nome}: {erro}"
+            )
+
+            if conn:
+                conn.rollback()
+
+        finally:
+
+            if cur:
+                cur.close()
+
+            if conn:
+                conn.close()
+
+    # --------------------------------------------------------
+    # MOSTRAR NO TERMINAL
+    # --------------------------------------------------------
+
+    def mostrar_comportamento(self, agora, preco):
+
+        print(
+            f"[{self.nome:<15}] "
+            f"{self.ativo:<12} | "
+            f"R$ {float(preco):>8.2f} | "
+            f"Status: {self.status_acao:<22} | "
+            f"Humor: {self.humor:<12} | "
+            f"Atualização: {agora.strftime('%H:%M:%S')}"
+        )
+
+
+# ============================================================
+# BUSCAR PREÇO
+# ============================================================
+
+def buscar_preco_atual(ticker):
+
+    print(f"📡 Buscando preço de {ticker}...")
+
+    try:
+
+        ativo = yf.Ticker(ticker)
+
+        # ----------------------------------------------------
+        # PRIMEIRA TENTATIVA
+        # ----------------------------------------------------
+
+        try:
+
+            preco = ativo.fast_info.get("last_price")
+
+            if preco is not None:
+
+                preco = float(preco)
+
+                print(
+                    f"💰 {ticker}: R$ {preco:.2f}"
+                )
+
+                return preco
+
+        except Exception as erro:
+
+            print(
+                f"⚠️ fast_info falhou para {ticker}: {erro}"
+            )
+
+        # ----------------------------------------------------
+        # SEGUNDA TENTATIVA
+        # ----------------------------------------------------
+
+        dados = ativo.history(
+            period="1d",
+            interval="1m"
+        )
+
+        if dados.empty:
+
+            print(
+                f"❌ Nenhum dado encontrado para {ticker}"
+            )
+
+            return None
+
+        dados = dados.dropna(
+            subset=["Close"]
+        )
+
+        if dados.empty:
+
+            print(
+                f"❌ Não foi possível obter o preço de {ticker}"
+            )
+
+            return None
+
+        preco = float(
+            dados["Close"].iloc[-1]
+        )
+
+        print(
+            f"💰 {ticker}: R$ {preco:.2f}"
+        )
+
+        return preco
+
+    except Exception as erro:
+
+        print(
+            f"❌ Erro ao buscar {ticker}: {erro}"
+        )
+
+        return None
+
+
+# ============================================================
+# CARREGAR BOTS DO MYSQL
+# ============================================================
+
+def carregar_bots():
+
+    conn = None
+    cur = None
+
+    try:
+
         conn = get_conexao()
+
         cur = conn.cursor()
 
-        # Salva no histórico
         cur.execute(
-            """INSERT INTO historico_analises
-               (bot_id, preco, humor, status_acao)
-               VALUES (%s, %s, %s, %s)""",
-            (
-                self.bot_id,
-                float(preco),
-                self.humor,
-                self.status_acao
-            )
+            """
+            SELECT id, nome, ativo
+            FROM bots
+            """
         )
 
-        # Atualiza o estado atual do bot
-        cur.execute(
-            """UPDATE bots
-               SET preco = %s,
-                   humor = %s,
-                   status_acao = %s
-               WHERE id = %s""",
-            (
-                float(preco),
-                self.humor,
-                self.status_acao,
-                self.bot_id
+        registros = cur.fetchall()
+
+        bots = []
+
+        for bot_id, nome, ativo in registros:
+
+            bot = BotAnalista(
+                nome,
+                bot_id,
+                ativo
             )
+
+            bots.append(bot)
+
+        return bots
+
+    except Exception as erro:
+
+        print(
+            f"❌ Erro ao carregar bots: {erro}"
         )
 
-        conn.commit()
+        return []
 
-        cur.close()
-        conn.close()
+    finally:
 
-     except Exception as e:
-        print(f"⚠️ Erro ao salvar análise do {self.nome}: {e}")
+        if cur:
+            cur.close()
 
-    def mostrar_comportamento(self, agora):
-      acao_visual = "📈"  # exemplo
-
-      print(
-        f"[{self.nome:<15}] "
-        f"print ultima Atulização: {agora.strftime('%H/%M/%S')}' | "
-        f"Ação: {self.status_acao:<22} | "
-        f"Humor: {self.humor:<12} | "
-        f"{acao_visual}"
-    )
+        if conn:
+            conn.close()
 
 
-def buscar_dados_yahoo(ticker, periodo, intervalo):
-    print(f"📡 Buscando dados de {ticker} no Yahoo Finance...")
-    acao = yf.Ticker(ticker)
-    dados = acao.history(period=periodo, interval=intervalo)
-    
-    if dados.empty:
-        print("❌ Nenhum dado encontrado. Verifique o ticker ou a conexão.")
-        return None
-    
-    print(f"✅ {len(dados)} dias de dados carregados com sucesso!\n")
-    return dados
+# ============================================================
+# SIMULAÇÃO / ATUALIZAÇÃO
+# ============================================================
 
 def simular_mercado():
-    print("="*100)
-    print(f" SIMULADOR DE ANÁLISE DE MERCADO - (Dados Reais do Yahoo Finance) ")
-    print("="*100)
 
-  # 🔹 Busca (ou cria) os 3 bots no banco
-conn = get_conexao()
-cur = conn.cursor()
+    print("=" * 100)
+    print(" STOCKBOTS - MONITORAMENTO DE ATIVOS ")
+    print("=" * 100)
 
-cur.execute("""
-    SELECT id, nome, acao
-    FROM bots
-""")
+    bots = carregar_bots()
 
-registros = cur.fetchall()
+    if not bots:
 
-bots = []
+        print(
+            "❌ Nenhum bot encontrado no banco de dados."
+        )
 
-for bot_id, nome, acao in registros:
-    bots.append(BotAnalista(nome, bot_id, acao))
+        return
 
-    cur.close()
-    conn.close()
-
-
-for bot in bots:
-
-    dados = buscar_dados_yahoo(
-        bot.acao,
-        PERIODO,
-        INTERVALO
+    print(
+        f"🤖 {len(bots)} bot(s) carregado(s)."
     )
-    if dados is not None:
-     print(f"Quantidade de dados: {len(dados)}")
-     print(dados.tail())
-    
-    print(f"Ticker do bot: {bot.acao}")
 
-    if dados is None:
-        continue
+    print(
+        f"⏱️ Atualização a cada "
+        f"{INTERVALO_ATUALIZACAO} segundos."
+    )
 
-    for agora, linha in dados.iterrows():
+    print("=" * 100)
 
-        preco = linha["Close"]
+    while True:
 
-        bot.analisar_mercado(preco)
-        bot.mostrar_comportamento(agora)
-        bot.salvar_analise(preco)
+        agora = datetime.now()
 
-        time.sleep(2)
-        
-    # Itera sobre cada dia do histórico real
-    agora = datetime.now()
-    for agora, linha in dados.iterrows():
-        preco = linha['Close']
-        
-        print(f"\n--- {agora.strftime('%H%M/%S')} | VALE3 Fechou em: R$ {preco:.2f} ---")
+        print()
+        print(
+            f"🔄 ATUALIZAÇÃO "
+            f"{agora.strftime('%d/%m/%Y %H:%M:%S')}"
+        )
 
-    print("\n" + "="*100)
-    print(" FIM DA SIMULAÇÃO ")
+        print("-" * 100)
 
+        for bot in bots:
+
+            preco = buscar_preco_atual(
+                bot.ativo
+            )
+
+            # Se não conseguiu preço,
+            # não altera o banco
+            if preco is None:
+
+                print(
+                    f"⚠️ {bot.nome}: "
+                    f"preço não encontrado."
+                )
+
+                continue
+
+            # Analisa o preço
+            bot.analisar_mercado(
+                preco
+            )
+
+            # Mostra no terminal
+            bot.mostrar_comportamento(
+                agora,
+                preco
+            )
+
+            # SALVA NO MYSQL
+            bot.salvar_analise(
+                preco
+            )
+
+        print("-" * 100)
+
+        print(
+            f"⏳ Próxima atualização em "
+            f"{INTERVALO_ATUALIZACAO} segundos..."
+        )
+
+        time.sleep(
+            INTERVALO_ATUALIZACAO
+        )
+
+
+# ============================================================
+# INICIAR PROGRAMA
+# ============================================================
 
 if __name__ == "__main__":
+
     simular_mercado()
