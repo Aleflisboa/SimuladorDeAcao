@@ -1,24 +1,80 @@
-body{
-    background-color: black;
-    align-items: center;
-    display: flex;
-    justify-content: center;
-    height: 100vh;
+body {
     margin: 0;
-}
-.lobby img{
-    align-items: center;
-    position: center;
-    top: 50%;
-    left: 50%;
-    justify-content: center;
+    background-color: black;
 }
 
-.lobby{
-    position: center;
-    padding: 40px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 30px;
+.loby {
+    position: relative;
+    width: 1000px;
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+.loby img {
+    display: block;
+    width: 100%;
+}
+
+.boneco{
+    position: absolute;
+    width: 25px;
+    height: 150px;
+
+    background-repeat: no-repeat;
+    background-position: 0 0;
+    image-rendering: pixelated;
+
+    transform: scale(2);
+    transform-origin: bottom left;
+    animation: respirar 1.5s ease-in-out infinite;
+
+    z-index: 2;
+}
+
+.boneco {
+    background-image: url("/static/gianbot.png");
+    left: 40%;
+    top: 40%;
+}
+
+
+.lisinho {
+    position: absolute;
+
+    width: 50px;
+    height: 100px;
+
+    left: 65%;
+    top: 40%;
+
+    background-image: url("/static/lisinho.png");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+
+    image-rendering: pixelated;
+
+    transform: scale(6);
+    transform-origin: bottom center;
+
+    animation: respirarLisinho 1.5s ease-in-out infinite;
+}
+
+@keyframes respirarLisinho {
+    0%, 100% {
+        transform: scale(3.5, 3.5);
+    }
+
+    50% {
+        transform: scale(3.5, 3.45);
+    }
+}
+@keyframes respirar {
+    0%, 100% {
+        transform: scale(2);
+    }
+
+    50% {
+        transform: scale(2, 1.97);
+    }
 }
