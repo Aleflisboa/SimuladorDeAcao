@@ -402,3 +402,11 @@ def simular_mercado():
 if __name__ == "__main__":
 
     simular_mercado()
+    
+def atualizar_bots():
+    print("Atualizando preços dos bots...")
+
+
+if __name__ == "__main__":
+    atualizar_bots()
+    

@@ -1,17 +1,52 @@
+import asyncio
+from pathlib import Path
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from pathlib import Path
-
 from db import get_conexao
+from main import atualizar_bots
 
 
 # ============================================================
-# CONFIGURAÇÃO
+# Atualização
 # ============================================================
 
-app = FastAPI(title="API Bots Analistas")
+async def loop_atualizacao():
+    while True:
+        try:
+            await asyncio.to_thread(atualizar_bots)
+            print("StockBots atualizado!")
+
+        except Exception as erro:
+            print(f"Erro ao atualizar StockBots: {erro}")
+
+        await asyncio.sleep(300)
+
+
+# Inicialização e encerramento
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    tarefa = asyncio.create_task(loop_atualizacao())
+
+    try:
+        yield
+    finally:
+        tarefa.cancel()
+        try:
+            await tarefa
+        except asyncio.CancelledError:
+            pass
+
+
+# Criar aplicação FastAPI
+app = FastAPI(
+    title="API Bots Analistas",
+    lifespan=lifespan
+)
+
+app.mount("/static", StaticFiles(directory="front"), name="static")
 
 BASE_DIR = Path(__file__).resolve().parent
 FRONT_DIR = BASE_DIR / "front"
@@ -302,3 +337,4 @@ def historico_bot(
     finally:
         cur.close()
         conn.close()
+
