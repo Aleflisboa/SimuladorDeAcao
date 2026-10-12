@@ -15,7 +15,7 @@ body {
     width: 100%;
 }
 
-.boneco{
+.Gian{
     position: absolute;
     width: 25px;
     height: 150px;
@@ -31,7 +31,7 @@ body {
     z-index: 2;
 }
 
-.boneco {
+.Gian {
     background-image: url("/static/gianbot.png");
     left: 40%;
     top: 40%;
@@ -58,6 +58,29 @@ body {
     transform-origin: bottom center;
 
     animation: respirarLisinho 1.5s ease-in-out infinite;
+}
+.cotacao {
+    background: rgba(15, 23, 42, 0.9);
+    color: #00ff88;
+
+    padding: 8px 17px;
+    border: 2px solid #00ff88;
+    border-radius: 8px;
+
+    font-family: monospace;
+    font-size: 10px;
+    font-weight: bold;
+
+    width: max-content;
+    max-width: 200px;
+    box-sizing: border-box;
+
+    text-align: center;
+    white-space: nowrap;
+
+    white-space: pre;
+    margin-bottom: 12px;
+    z-index: 10;
 }
 
 @keyframes respirarLisinho {
