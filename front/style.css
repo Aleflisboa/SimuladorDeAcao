@@ -60,26 +60,31 @@ body {
     animation: respirarLisinho 1.5s ease-in-out infinite;
 }
 .cotacao {
+    position: absolute;
+    bottom: 80%;
+    left: 50%;
+    transform: translateX(-50%);
+
     background: rgba(15, 23, 42, 0.9);
     color: #00ff88;
+    position: center;
 
-    padding: 8px 17px;
-    border: 2px solid #00ff88;
+    padding: 5px 5px;
+    border: 2px solid #000000;
     border-radius: 8px;
 
     font-family: monospace;
-    font-size: 10px;
+    font-size: 5px;
     font-weight: bold;
 
     width: max-content;
-    max-width: 200px;
-    box-sizing: border-box;
+    max-width: 100px;
+    box-sizing: content-box;
 
     text-align: center;
     white-space: nowrap;
 
-    white-space: pre;
-    margin-bottom: 12px;
+    margin-bottom: 2px;
     z-index: 10;
 }
 

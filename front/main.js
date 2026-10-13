@@ -1,3 +1,23 @@
+function atualizarSprite(){
+    const bot = document.querySelector(".Gian");{
+        if (humor === "FELIZ"){
+            bot.styleBackgraoudImage = "url("/")"
+        }
+        else if(humor === "COM_RAIVA"){
+            bot.styleBackgraoudImage = "url("/")"
+        }   
+        else if(humor === "ESPERANDO"){
+            bot.styleBackgraoudImage = "url("/")"
+        }
+     }
+}
+
+
+
+
+
+
+
 async function atualizarCotacoes() {
     try {
         const resposta = await fetch("/bots", {
@@ -18,6 +38,10 @@ async function atualizarCotacoes() {
             {
                 nome: "GIAN",
                 elemento: "cotacao-gian"
+            },
+            {
+                nome: "LISINHO",
+                elemento: "cotacao-lisinho"
             }
         ];
 
