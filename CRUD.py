@@ -7,11 +7,27 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from db import get_conexao
 from main import atualizar_bots
-
+from threading import Thread
 
 # ============================================================
 # Atualização
 # ============================================================
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+
+    print("Iniciando StockBots...")
+
+    tarefa = Thread(
+        target=atualizar_bots,
+        daemon=True
+    )
+    tarefa.start()
+
+    yield
+
+    print("Encerrando StockBots...")
+
 
 async def loop_atualizacao():
     while True:
